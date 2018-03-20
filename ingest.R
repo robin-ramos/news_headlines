@@ -1,4 +1,4 @@
-library(reader)
+library(readr)
 library(tidyr)
 library(dplyr)
 library(tidytext)
@@ -28,6 +28,7 @@ for (i in seq(company_tag)) {
                    h$tag)
 }
 
+
 h_summary <- h %>% group_by(tag) %>% 
   summarise(
     count = n()
@@ -45,14 +46,20 @@ h_sentences <- tibble(headline = headlines$headline, ID = headlines$ID) %>%
   group_by(ID) %>% 
   mutate(word_num = n()) %>% 
   summarise(sentiment = (sum(score)))
-h_sentiments <- left_join(h, h_sentences)
+h_sentiments <- left_join(h, h_sentences) %>% select(headline, sentiment)
 
 sentiments2 <- get_sentiments("loughran")
 h_sent2 <- tibble(headline = headlines$headline, ID = headlines$ID) %>% 
   unnest_tokens(word, headline) %>% 
-  inner_join(sentiments) %>% 
-  group_by(ID)
+  inner_join(sentiments2) %>% 
+  mutate(dummy = 1, a = paste('x',sentiment)) %>% 
+  spread(a,dummy, fill = 0) %>% 
+  group_by(ID) %>% 
+  summarise_at(vars(starts_with('x')), sum)
 
 h_sentiments <- left_join(h, h_sent2) %>% select(headline,sentiment)
+
+table(is.na(h_sentiments$sentiment))
+
 
 save.image(file = "sentiment.RData")
